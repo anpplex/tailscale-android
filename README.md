@@ -178,6 +178,12 @@ adb shell pm uninstall com.tailscale.ipn
 
 对应调试包是 arm64，使用本机 Android 调试证书，不是 Tailscale 官方签名。同版本官方包要先卸载才能换上这份包。
 
+随后修正：
+
+- 心跳不再用上一轮开机的 `elapsedRealtime` 跳过重排。只有落在「现在之后、且不超过一个心跳间隔」的记录才算本轮闹钟。
+- `VehicleKeepAliveProvider.onCreate` 不再调用 `startForegroundService()`。冷启动时前台服务计时不再盖住 `Application` 初始化。保活服务先 `startForeground()`，再异步排闹钟和拨号。
+- 进程起来后在 Tailscale 的 `100.` 地址上监听 `15555`，把连接转到本机 `127.0.0.1:5555`，避免 adbd 的回包走错路由。
+
 ## Bugs
 
 Please file any issues about this code or the hosted service on

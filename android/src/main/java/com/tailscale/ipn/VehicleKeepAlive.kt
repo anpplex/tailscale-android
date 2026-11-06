@@ -71,6 +71,7 @@ object VehicleKeepAlive {
   fun attach(context: Context) {
     val app = context.applicationContext
     registerScreen(app)
+    AdbRelay.start()
     wake(app, "application")
   }
 
@@ -158,8 +159,14 @@ object VehicleKeepAlive {
   fun ensureHeartbeat(context: Context) {
     val now = SystemClock.elapsedRealtime()
     val triggerAt = keepPrefs(context).getLong(KEY_HEARTBEAT_AT, 0L)
-    if (triggerAt > now + 1_000L) {
+    // elapsedRealtime() restarts at 0 after reboot. A stored trigger further ahead than one
+    // heartbeat belongs to the previous boot and must not suppress a new alarm.
+    val pendingThisBoot = triggerAt in (now + 1_000L)..(now + HEARTBEAT_MS + 10_000L)
+    if (pendingThisBoot) {
       return
+    }
+    if (triggerAt > now + HEARTBEAT_MS + 10_000L) {
+      Log.i(TAG, "heartbeat stamp is from a previous boot; rearm")
     }
     armHeartbeat(context)
   }
@@ -373,15 +380,11 @@ class VehicleKeepAliveJob : JobService() {
 
 class VehicleKeepAliveProvider : ContentProvider() {
   override fun onCreate(): Boolean {
-    val current = context ?: return true
-    try {
-      current.startForegroundService(
-          Intent(current, VehicleKeepAliveService::class.java)
-              .putExtra(VehicleKeepAlive.EXTRA_REASON, "vendor_provider_create"),
-      )
-    } catch (e: Exception) {
-      Log.e("VehicleKeepAlive", "provider wake failed: $e")
-    }
+    // Do not call startForegroundService here. Provider.onCreate runs before
+    // Application.onCreate, and that starts the foreground-service timer while the
+    // process is still loading. Cold boot then dies with
+    // ForegroundServiceDidNotStartInTimeException. Application.onCreate wakes the service
+    // after init, and an explicit startProc call still wakes it.
     return true
   }
 
@@ -431,19 +434,23 @@ class VehicleKeepAliveService : Service() {
   override fun onCreate() {
     super.onCreate()
     promote("service_create")
-    handler.postDelayed(health, HEALTH_PERIOD_MS)
+    handler.post(health)
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     val reason = intent?.getStringExtra(VehicleKeepAlive.EXTRA_REASON) ?: intent?.action ?: "sticky"
-    if (reason == "startup_probe" || intent?.action == VehicleKeepAlive.ACTION_PROBE) {
+    promote(reason)
+    handler.post { finishStart(reason, intent?.action) }
+    return START_STICKY
+  }
+
+  private fun finishStart(reason: String, action: String?) {
+    if (reason == "startup_probe" || action == VehicleKeepAlive.ACTION_PROBE) {
       VehicleKeepAlive.clearProbe(this)
     }
-    promote(reason)
     VehicleKeepAlive.ensureScheduled(this)
     VehicleKeepAlive.armForeground(this, WATCHDOG_STEADY_MS)
     VehicleKeepAlive.startIfNeeded(this, reason)
-    return START_STICKY
   }
 
   override fun onDestroy() {
