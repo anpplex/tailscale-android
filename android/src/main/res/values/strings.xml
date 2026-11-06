@@ -50,8 +50,13 @@
 
     <!-- Strings for the settings screen -->
     <string name="settings_title">Settings</string>
+    <string name="display_language">Display language</string>
+    <string name="display_language_system">Follow system</string>
+    <string name="display_language_zh">简体中文</string>
+    <string name="display_language_en">English</string>
     <string name="settings_admin_prefix">"Manage your tailnet settings in the "</string>
     <string name="settings_admin_link">admin console</string>
+    <string name="settings_admin_suffix"></string>
     <string name="about_tailscale">About Tailscale</string>
     <string name="bug_report">Bug report</string>
     <string name="use_ts_dns">Use Tailscale DNS</string>
@@ -307,6 +312,9 @@
     <string name="key_expiry_channel_description">Notifications when your Tailscale device key is about to expire.</string>
     <string name="copy_ip_address">Copy IP Address</string>
     <string name="ping">Ping</string>
+    <string name="open_settings">Open settings</string>
+    <string name="go_back">Go back to the previous screen</string>
+    <string name="ping_device">Ping device</string>
     <string name="relayed_connection">Relayed connection (%1$s)</string>
     <string name="direct_connection">Direct connection</string>
     <string name="peer_relayed_connection">Peer relayed connection</string>

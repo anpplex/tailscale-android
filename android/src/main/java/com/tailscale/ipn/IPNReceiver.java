@@ -6,6 +6,7 @@ package com.tailscale.ipn;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.net.VpnService;
 
 import androidx.work.Data;
 import androidx.work.ExistingWorkPolicy;
@@ -38,6 +39,13 @@ public class IPNReceiver extends BroadcastReceiver {
         final String action = intent.getAction();
 
         if (Objects.equals(action, INTENT_CONNECT_VPN)) {
+            UninitializedApp app = UninitializedApp.get();
+            if (app.isAbleToStartVPN() && VpnService.prepare(app) == null) {
+                // Start inside this broadcast. A later WorkManager job misses the window in which
+                // Android allows a background process to start the VPN foreground service.
+                app.startVPN();
+                return;
+            }
             OneTimeWorkRequest req =
                     new OneTimeWorkRequest.Builder(StartVPNWorker.class)
                             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)

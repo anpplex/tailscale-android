@@ -26,6 +26,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   private lateinit var app: App
   val scope = CoroutineScope(Dispatchers.IO)
   private var closed = false
+  private var userStop = false
 
   override fun id(): String {
     return randomID
@@ -48,6 +49,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
       when (intent?.action) {
         ACTION_STOP_VPN -> {
+          userStop = true
           app.setWantRunning(false)
           close()
           START_NOT_STICKY
@@ -115,14 +117,26 @@ open class IPNService : VpnService(), libtailscale.IPNService {
 
   override fun onDestroy() {
     NetworkChangeCallback.setUnderlyingNetworkListener(null)
+    val explicitStop = userStop
     close()
     updateVpnStatus(false)
+    if (!explicitStop) {
+      VehicleKeepAlive.armForeground(applicationContext, 5_000L)
+    }
     super.onDestroy()
+  }
+
+  override fun onTaskRemoved(rootIntent: Intent?) {
+    if (!userStop) {
+      VehicleKeepAlive.armForeground(this, 2_000L)
+    }
+    super.onTaskRemoved(rootIntent)
   }
 
   override fun onRevoke() {
     // VPN permission was granted to another app, so tell the Go backend and then set prepared to be
     // false so that when user attempts to connect again, VpnService.prepare() is called
+    userStop = true
     app.setWantRunning(false)
     setVpnPrepared(false)
     close()

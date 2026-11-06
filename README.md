@@ -157,6 +157,27 @@ adb shell am start -n com.tailscale.ipn/com.tailscale.ipn.MainActivity
 adb shell pm uninstall com.tailscale.ipn
 ```
 
+## Changelog
+
+### vehicle-298988300（1.105.129）
+
+座舱保活，装在 `com.tailscale.ipn` 进程里：
+
+- `VehicleKeepAliveService` 常驻前台。开机、华为上电、亮屏、解锁和 `VEHICLE_WATCHDOG` 都进这一条。
+- 60 秒精确心跳 `VEHICLE_HEARTBEAT`（`setExactAndAllowWhileIdle`，需要 `SCHEDULE_EXACT_ALARM`）。10 分钟看门狗和 5 秒启动探测用 `PendingIntent.getForegroundService`。
+- 每 5 秒按 Tailscale 自己的状态做健康检查。`Running` / `Starting` 不重复拨号；`WantRunning` 为假、需要登录或需要机器授权时不拨。
+- 持久 Job `3147087`。健康检查发现 Job 或闹钟缺失会补上。
+- `content://com.tailscale.ipn.keepalive` 的 `startProc` 可从外部拉起进程。
+- `IPNService` 在非主动停止时，销毁后 5 秒、任务划掉后 2 秒拉回保活服务。
+- `CONNECT_VPN` 在已经允许 VPN 时，于广播里直接 `startVPN()`。
+
+语言：
+
+- 新增 `values-zh-rCN` 简体中文资源。
+- 设置页可选跟随系统、简体中文或 English。
+
+对应调试包是 arm64，使用本机 Android 调试证书，不是 Tailscale 官方签名。同版本官方包要先卸载才能换上这份包。
+
 ## Bugs
 
 Please file any issues about this code or the hosted service on

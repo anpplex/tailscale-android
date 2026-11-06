@@ -3,6 +3,7 @@
 
 package com.tailscale.ipn.ui.view
 
+import android.app.Activity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -22,14 +23,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tailscale.ipn.AppLocale
 import com.tailscale.ipn.BuildConfig
 import com.tailscale.ipn.R
 import com.tailscale.ipn.mdm.AlwaysNeverUserDecides
@@ -65,6 +69,17 @@ fun SettingsView(
   val useTailscaleSubnets by MDMSettings.useTailscaleSubnets.flow.collectAsState()
   val isClientRemoteLoggingEnabled by viewModel.isClientRemoteLoggingEnabled.collectAsState()
   var showDisableLoggingDialog by remember { mutableStateOf(false) }
+  var showLanguageDialog by remember { mutableStateOf(false) }
+  val context = LocalContext.current
+  val languageTag = AppLocale.getTag(context)
+  val languageSubtitle =
+      stringResource(
+          when (languageTag) {
+            AppLocale.ZH -> R.string.display_language_zh
+            AppLocale.EN -> R.string.display_language_en
+            else -> R.string.display_language_system
+          }
+      )
 
   Scaffold(
       topBar = {
@@ -72,6 +87,13 @@ fun SettingsView(
       }
   ) { innerPadding ->
     Column(modifier = Modifier.padding(innerPadding).verticalScroll(rememberScrollState())) {
+      Setting.Text(
+          R.string.display_language,
+          subtitle = languageSubtitle,
+          onClick = { showLanguageDialog = true },
+      )
+      Lists.SectionDivider()
+
       if (isVPNPrepared) {
         UserView(
             profile = user,
@@ -172,6 +194,34 @@ fun SettingsView(
     }
   }
 
+  if (showLanguageDialog) {
+    AlertDialog(
+        onDismissRequest = { showLanguageDialog = false },
+        title = { Text(stringResource(R.string.display_language)) },
+        text = {
+          Column {
+            LanguageChoice(R.string.display_language_system, languageTag == AppLocale.SYSTEM) {
+              chooseLanguage(context, AppLocale.SYSTEM)
+              showLanguageDialog = false
+            }
+            LanguageChoice(R.string.display_language_zh, languageTag == AppLocale.ZH) {
+              chooseLanguage(context, AppLocale.ZH)
+              showLanguageDialog = false
+            }
+            LanguageChoice(R.string.display_language_en, languageTag == AppLocale.EN) {
+              chooseLanguage(context, AppLocale.EN)
+              showLanguageDialog = false
+            }
+          }
+        },
+        confirmButton = {
+          TextButton(onClick = { showLanguageDialog = false }) {
+            Text(stringResource(R.string.cancel))
+          }
+        },
+    )
+  }
+
   if (showDisableLoggingDialog) {
     AlertDialog(
         onDismissRequest = { showDisableLoggingDialog = false },
@@ -197,6 +247,23 @@ fun SettingsView(
         },
     )
   }
+}
+
+private fun chooseLanguage(context: android.content.Context, tag: String) {
+  if (AppLocale.getTag(context) == tag) {
+    return
+  }
+  AppLocale.setTag(context, tag)
+  (context as? Activity)?.recreate()
+}
+
+@Composable
+private fun LanguageChoice(labelRes: Int, selected: Boolean, onClick: () -> Unit) {
+  Text(
+      text = stringResource(labelRes),
+      modifier = Modifier.clickable(onClick = onClick).padding(vertical = 12.dp),
+      color = if (selected) MaterialTheme.colorScheme.primary else Color.Unspecified,
+  )
 }
 
 object Setting {
@@ -285,6 +352,8 @@ fun AdminTextView(onNavigateToAdminConsole: () -> Unit) {
     ) {
       append(stringResource(id = R.string.settings_admin_link))
     }
+    pop()
+    append(stringResource(id = R.string.settings_admin_suffix))
   }
 
   Lists.InfoItem(adminStr, onClick = onNavigateToAdminConsole)

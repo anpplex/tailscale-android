@@ -3,6 +3,7 @@
 
 package com.tailscale.ipn
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -45,6 +46,10 @@ class ShareActivity : ComponentActivity() {
   private val TAG = ShareActivity::class.simpleName
 
   private val requestedTransfers: StateFlow<List<Ipn.OutgoingFile>> = MutableStateFlow(emptyList())
+
+  override fun attachBaseContext(newBase: Context) {
+    super.attachBaseContext(AppLocale.wrap(newBase))
+  }
 
   @OptIn(ExperimentalMaterial3Api::class)
   override fun onCreate(savedInstanceState: Bundle?) {

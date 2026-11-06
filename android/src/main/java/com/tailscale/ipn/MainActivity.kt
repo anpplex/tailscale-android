@@ -135,6 +135,10 @@ class MainActivity : ComponentActivity() {
   // simply opening the URL.  This should be consumed once it has been handled.
   private val loginQRCode: StateFlow<String?> = MutableStateFlow(null)
 
+  override fun attachBaseContext(newBase: Context) {
+    super.attachBaseContext(AppLocale.wrap(newBase))
+  }
+
   @RequiresApi(Build.VERSION_CODES.TIRAMISU)
   @SuppressLint("SourceLockedOrientationActivity")
   override fun onCreate(savedInstanceState: Bundle?) {

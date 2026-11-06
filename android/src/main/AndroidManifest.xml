@@ -11,6 +11,10 @@
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
@@ -97,6 +101,65 @@
                 <data android:mimeType="video/*" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".VehicleStartupReceiver"
+            android:directBootAware="true"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter android:priority="1000">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.PRE_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.USER_UNLOCKED" />
+                <action android:name="android.intent.action.USER_STARTED" />
+                <action android:name="android.intent.action.USER_FOREGROUND" />
+                <action android:name="android.intent.action.USER_INITIALIZE" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.USER_PRESENT" />
+                <action android:name="android.intent.action.SCREEN_ON" />
+                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.huawei.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.huawei.android.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.tailscale.ipn.VEHICLE_WATCHDOG" />
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name=".VehicleKeepAliveService"
+            android:directBootAware="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            android:stopWithTask="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="vehicle_tailscale_keepalive" />
+        </service>
+
+        <service
+            android:name=".VehicleStartupBridgeService"
+            android:directBootAware="true"
+            android:exported="true"
+            android:label="Tailscale startup bridge"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".VehicleKeepAliveJob"
+            android:directBootAware="true"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <provider
+            android:name=".VehicleKeepAliveProvider"
+            android:authorities="com.tailscale.ipn.keepalive"
+            android:directBootAware="true"
+            android:exported="true" />
 
         <receiver
             android:name="IPNReceiver"

@@ -110,6 +110,10 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
     return app
   }
 
+  override fun attachBaseContext(base: Context) {
+    super.attachBaseContext(AppLocale.wrap(base))
+  }
+
   override fun onCreate() {
     super.onCreate()
     appInstance = this
@@ -141,6 +145,7 @@ class App : UninitializedApp(), libtailscale.AppContext, ViewModelStoreOwner {
         getString(R.string.key_expiry_channel_description),
         NotificationManagerCompat.IMPORTANCE_DEFAULT,
     )
+    VehicleKeepAlive.attach(this)
   }
 
   override fun onTerminate() {
